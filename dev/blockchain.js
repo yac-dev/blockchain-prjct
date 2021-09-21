@@ -33,7 +33,8 @@ Blockchain.prototype.createNewTransaction = function (amount, sender, recipient)
     recipient: recipient,
   };
   this.pendingTransactions.push(newTransaction);
-  return this.getLastBlock['index'] + 1; // これにより、作られたtransactionが次に来るべき番号が決まる。
+  return this.getLastBlock()['index'] + 1; // これにより、作られたtransactionが次に来るべき番号が決まる。
+  // return this.chain.length + 1; //これじゃあだめなのか？
 };
 
 Blockchain.prototype.hashBlock = function (previousBlockHash, currentBlockData, nonce) {
