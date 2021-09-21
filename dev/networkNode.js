@@ -73,11 +73,23 @@ app.post('/register-and-broadcast-node', async (request, response) => {
 });
 
 app.post('/register-node', (request, response) => {
-  // ここでは、network参加申し込みをしてきたnodeを、認め実際にnetworkに追加していく。
+  // ここでは、network参加申し込みをしてきたnodeを、実際にnetworkに追加していく。
+  const { newNodeUrl } = request.body; // このnewNodeurlっていうのは、送り先か。。。
+  if (bitcoin.networkNodes.indexOf(newNodeUrl) === -1 && bitcoin.currentNodeUrl !== newNodeUrl)
+    bitcoin.networkNodes.push(newNodeUrl);
+  response.json({ note: 'New node registered successfully.' });
 });
 
 app.post('/register-nodes-bulk', (request, response) => {
-  // ここでは、複数のnodeを一度に、networkへ追加していく。
+  // ここでは、複数のnodeを一度に、networkへ追加していく.
+  const { allNetworkNodes } = request.body;
+  allNetworkNodes.forEach((networkNodeUrl) => {
+    if (bitcoin.networkNodes.indexOf(networkNodeUrl) === -1 && bitcoin.currentNodeUrl !== networkNodeUrl)
+      bitcoin.networkNodes.push(networkNodeUrl);
+  });
+  response.json({
+    note: 'Bulk registration successful!',
+  });
 });
 
 app.listen(port, () => {
