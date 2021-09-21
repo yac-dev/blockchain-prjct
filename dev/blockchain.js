@@ -1,7 +1,11 @@
 const sha256 = require('sha256');
+const currentNodeUrl = process.argv[3];
+
 const Blockchain = function () {
   this.chain = [];
   this.pendingTransactions = []; // これは言わば、pendingな状態のtransactionと見ていい。また、set in stone状態ではないものとみなせる。
+  this.currentNodeUrl = currentNodeUrl;
+  this.networkNodes = []; // urlを要素として、これがnode networkを表すものとなる。
 
   this.createNewBlock(100, '0', '0'); // genesis blockになる。
 };

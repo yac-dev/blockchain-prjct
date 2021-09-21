@@ -3,6 +3,7 @@ const app = express();
 const Blockchain = require('./blockchain');
 const uuid = require('uuid').v1;
 const port = process.argv[2];
+const requestPromise = require('request-promise');
 
 // ここのserverが起動したら、その時点でBlockchainのinstanceが出来上がる。
 
@@ -38,6 +39,45 @@ app.get('/mine', (request, response) => {
     note: 'New block mined(create) successfully!',
     block: newBlock,
   });
+});
+
+app.post('/register-and-broadcast-node', async (request, response) => {
+  // ここで、node instanceをnetworkへ参加していくapi endpointになる。
+  const newNodeUrl = request.body.nodeUrl;
+
+  if (bitcoin.networkNodes.indexOf(newNodeUrl) === -1) bitcoin.networkNodes.push(newNodeUrl); // 要は、network arrayの中にこのurlがなかったら追加していく、っていうこと。もう少し分かりやすい書き方がある。
+  const registerNodesPromises = [];
+  bitcoin.networkNodes.forEach((networkNodeUrl) => {
+    // ここで、/register-node endpointへのアクセスをする。
+    const requestOptions = {
+      uri: networkNodeUrl + '/register-node', //ここってどう動くんだろね・
+      method: 'POST',
+      body: { newNodeUrl: newNodeUrl },
+      json: true,
+    };
+    registerNodesPromises.push(requestPromise(requestOptions)); // requestPromisesによる結果は、promiseになる。
+  });
+  // ここまででやっているのは、network内にある各nodeへ、それぞれ/register-node endpointへ requestを送ること。
+
+  const arr = await Promise.all(registerNodesPromises); // ここで実際に、全てのrequest実行する。
+  const bulkRegisterOptions = {
+    uri: newNodeUrl + '/register-nodes-bulk',
+    method: 'POST',
+    body: { allNetworkNodes: [...bitcoin.networkNodes, bitcoin.currentNodeUrl] },
+    json: true,
+  };
+  const arr2 = await requestPromise(bulkRegisterOptions);
+  response.json({
+    note: 'New node added with network successfully!',
+  });
+});
+
+app.post('/register-node', (request, response) => {
+  // ここでは、network参加申し込みをしてきたnodeを、認め実際にnetworkに追加していく。
+});
+
+app.post('/register-nodes-bulk', (request, response) => {
+  // ここでは、複数のnodeを一度に、networkへ追加していく。
 });
 
 app.listen(port, () => {
