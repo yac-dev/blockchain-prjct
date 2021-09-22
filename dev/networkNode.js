@@ -6,7 +6,6 @@ const port = process.argv[2];
 const requestPromise = require('request-promise');
 
 // ここのserverが起動したら、その時点でBlockchainのinstanceが出来上がる。
-
 const nodeAddress = uuid().split('-').join(''); // stringの中に、-が入っているから、それを取り除く。
 const bitcoin = new Blockchain();
 
@@ -20,6 +19,32 @@ app.post('/transaction', (request, response) => {
   const { amount, sender, recipient } = request.body;
   const blockIndex = bitcoin.createNewTransaction(amount, sender, recipient);
   response.json({ note: `Transaction WILL be added in block ${blockIndex}.` });
+});
+
+app.post('/transaction/broadcast', (request, response) => {
+  const { amount, sender, recipient } = request.body;
+  const newTransaction = bitcoin.createNewTransaction(amount, sender, recipient);
+  bitcoin.addTransactionToPendingTransactions(newTransaction);
+
+  const requestPromises = [];
+  bitcoin.networkNodes.forEach((networkNodeUrl) => {
+    // ここで、/transactionへのrequestを送る。
+    const requestOptions = {
+      uri: newNodeUrl + '/transaction',
+      method: 'POST',
+      body: newTransaction,
+      json: true,
+    };
+
+    requestPromises.push(requestPromise(requestOptions));
+  });
+
+  // ここで、requestPromisesのrequest全部をrunする。
+  Promise.all(requestPromises).then((data) => {
+    response.json({
+      note: 'Transaction created and broadcast successfully!',
+    });
+  });
 });
 
 app.get('/mine', (request, response) => {
