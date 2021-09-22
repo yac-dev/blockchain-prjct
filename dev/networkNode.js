@@ -41,34 +41,50 @@ app.get('/mine', (request, response) => {
   });
 });
 
-app.post('/register-and-broadcast-node', async (request, response) => {
+app.post('/register-and-broadcast-node', (request, response) => {
   // ここで、node instanceをnetworkへ参加していくapi endpointになる。
-  const newNodeUrl = request.body.nodeUrl;
+  const { newNodeUrl } = request.body;
 
-  if (bitcoin.networkNodes.indexOf(newNodeUrl) === -1) bitcoin.networkNodes.push(newNodeUrl); // 要は、network arrayの中にこのurlがなかったら追加していく、っていうこと。もう少し分かりやすい書き方がある。
-  const registerNodesPromises = [];
+  if (bitcoin.networkNodes.indexOf(newNodeUrl) === -1) bitcoin.networkNodes.push(newNodeUrl); // 要は、network arrayの中にこのurlがなかったら追加していく、っていうこと。もう少し分かりやすい書き方がある。まあ、一応これで沿っておこう。
+  console.log(bitcoin.networkNodes); //一応ここで、localhost3002がはいっていることは確認できる。
+  const regNodesPromises = [];
   bitcoin.networkNodes.forEach((networkNodeUrl) => {
-    // ここで、/register-node endpointへのアクセスをする。
+    console.log(networkNodeUrl); // ここでもlocalhost:3002は確認できる。
     const requestOptions = {
-      uri: networkNodeUrl + '/register-node', //ここってどう動くんだろね・
+      uri: networkNodeUrl + '/register-node',
       method: 'POST',
       body: { newNodeUrl: newNodeUrl },
       json: true,
     };
-    registerNodesPromises.push(requestPromise(requestOptions)); // requestPromisesによる結果は、promiseになる。
-  });
-  // ここまででやっているのは、network内にある各nodeへ、それぞれ/register-node endpointへ requestを送ること。
 
-  const arr = await Promise.all(registerNodesPromises); // ここで実際に、全てのrequest実行する。
-  const bulkRegisterOptions = {
-    uri: newNodeUrl + '/register-nodes-bulk',
-    method: 'POST',
-    body: { allNetworkNodes: [...bitcoin.networkNodes, bitcoin.currentNodeUrl] },
-    json: true,
-  };
-  const arr2 = await requestPromise(bulkRegisterOptions);
-  response.json({
-    note: 'New node added with network successfully!',
+    regNodesPromises.push(requestPromise(requestOptions));
+
+    Promise.all(regNodesPromises)
+      .then(
+        (data) => {
+          console.log(networkNodeUrl);
+          const bulkRegisterOptions = {
+            uri: networkNodeUrl + '/register-nodes-bulk',
+            method: 'POST',
+            body: { allNetworkNodes: [...bitcoin.networkNodes, bitcoin.currentNodeUrl] },
+            json: true,
+          };
+          return requestPromise(bulkRegisterOptions);
+        },
+        (error1) => {
+          console.log(error1);
+        }
+      )
+      .then(
+        (data) => {
+          response.json({
+            note: 'New Note Registered with network successfully',
+          });
+        },
+        (error2) => {
+          console.log(error2);
+        }
+      );
   });
 });
 
